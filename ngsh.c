@@ -11,14 +11,24 @@
 #define ARGV_SIZE 128
 #define ENVP_SIZE 1024
 
+extern char **environ;
 char *cmd_argv[ARGV_SIZE];
 char *cmd_envp[ENVP_SIZE];
 
-int load_envp(char *envp[])
+int execvpe(const char *file, char *argv[], char *envp[])
+{
+    char **saved_environ = environ;
+    environ = envp;
+    int r = execvp(file, argv);
+    environ = saved_environ;
+    return r;
+}
+
+int load_envp()
 {
     int envc = 0;
-    for (; envp[envc] != NULL; envc++) {
-        cmd_envp[envc] = strdup(envp[envc]);
+    for (; environ[envc] != NULL; envc++) {
+        cmd_envp[envc] = strdup(environ[envc]);
     }
     return envc;
 }
@@ -28,6 +38,33 @@ void free_envp()
     int envc = 0;
     for (; cmd_envp[envc] != NULL; envc++) {
         free(cmd_envp[envc]);
+    }
+}
+
+int parse_argv(char *cmdline)
+{
+    int argc = 0;
+    char *curr = cmdline;
+    while (*curr != '\0') {
+        char *next = curr;
+        while (!isblank(*next) && *next != '\0') {
+            next++;
+        }
+        cmd_argv[argc++] = strndup(curr, next - curr);
+        while (isblank(*next)) {
+            next++;
+        }
+        curr = next;
+    }
+    return argc;
+}
+
+void free_argv(int argc)
+{
+    int i;
+    for (i = 0; i < argc; i++) {
+        free(cmd_argv[i]);
+        cmd_argv[i] = 0;
     }
 }
 
@@ -56,36 +93,9 @@ char *get_prompt()
     return prompt;
 }
 
-int get_argv(char *cmdline)
+int main(int argc, char *argv[])
 {
-    int argc = 0;
-    char *curr = cmdline;
-    while (*curr != '\0') {
-        char *next = curr;
-        while (!isblank(*next) && *next != '\0') {
-            next++;
-        }
-        cmd_argv[argc++] = strndup(curr, next - curr);
-        while (isblank(*next)) {
-            next++;
-        }
-        curr = next;
-    }
-    return argc;
-}
-
-void free_argv(int argc)
-{
-    int i;
-    for (i = 0; i < argc; i++) {
-        free(cmd_argv[i]);
-        cmd_argv[i] = 0;
-    }
-}
-
-int main(int argc, char *argv[], char *envp[])
-{
-    load_envp(envp);
+    load_envp();
 
     while (1) {
         char *prompt = get_prompt();
@@ -97,12 +107,12 @@ int main(int argc, char *argv[], char *envp[])
 
         add_history(cmdline);
 
-        int cmd_argc = get_argv(cmdline);
+        int cmd_argc = parse_argv(cmdline);
         char *cmd = strdup(cmd_argv[0]);
 
         pid_t pid = fork();
         if (pid == 0) {
-            execve(cmd, cmd_argv, cmd_envp);
+            execvpe(cmd, cmd_argv, cmd_envp);
             /* The exec() functions return only if an error has occurred. */
             printf("NGSH> command not found: %s\n", cmd);
             _exit(EXIT_FAILURE);
@@ -110,8 +120,8 @@ int main(int argc, char *argv[], char *envp[])
             wait(NULL);
         }
 
-        free(cmdline);
         free(cmd);
+        free(cmdline);
         free_argv(cmd_argc);
     }
     printf("\n");
