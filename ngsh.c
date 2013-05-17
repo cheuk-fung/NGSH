@@ -14,6 +14,23 @@
 char *cmd_argv[ARGV_SIZE];
 char *cmd_envp[ENVP_SIZE];
 
+int load_envp(char *envp[])
+{
+    int envc = 0;
+    for (; envp[envc] != NULL; envc++) {
+        cmd_envp[envc] = strdup(envp[envc]);
+    }
+    return envc;
+}
+
+void free_envp()
+{
+    int envc = 0;
+    for (; cmd_envp[envc] != NULL; envc++) {
+        free(cmd_envp[envc]);
+    }
+}
+
 char *get_prompt()
 {
     char hostname[128];
@@ -68,6 +85,8 @@ void free_argv(int argc)
 
 int main(int argc, char *argv[], char *envp[])
 {
+    load_envp(envp);
+
     while (1) {
         char *prompt = get_prompt();
         char *cmdline = readline(prompt);
@@ -83,7 +102,7 @@ int main(int argc, char *argv[], char *envp[])
 
         pid_t pid = fork();
         if (pid == 0) {
-            execvp(cmd, cmd_argv);
+            execve(cmd, cmd_argv, cmd_envp);
             /* The exec() functions return only if an error has occurred. */
             printf("NGSH> command not found: %s\n", cmd);
             _exit(EXIT_FAILURE);
@@ -96,6 +115,8 @@ int main(int argc, char *argv[], char *envp[])
         free_argv(cmd_argc);
     }
     printf("\n");
+
+    free_envp();
 
     return 0;
 }
