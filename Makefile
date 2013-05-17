@@ -1,5 +1,5 @@
 CC = clang
-CFLAGS += -g
+CFLAGS += -Wall -g
 LDFLAGS += -lreadline
 
 ngsh: ngsh.o
