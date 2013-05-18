@@ -41,10 +41,10 @@ void free_envp()
     }
 }
 
-int parse_argv(char *cmdline)
+int parse_argv(char *line)
 {
     int argc = 0;
-    char *curr = cmdline;
+    char *curr = line;
     while (*curr != '\0') {
         char *next = curr;
         while (!isblank(*next) && *next != '\0') {
@@ -68,7 +68,7 @@ void free_argv(int argc)
     }
 }
 
-char *get_prompt()
+char *set_prompt()
 {
     char hostname[128];
     gethostname(hostname, sizeof hostname);
@@ -98,16 +98,19 @@ int main(int argc, char *argv[])
     load_envp();
 
     while (1) {
-        char *prompt = get_prompt();
-        char *cmdline = readline(prompt);
+        char *prompt = set_prompt();
+        char *line = readline(prompt);
         free(prompt);
-        if (cmdline == NULL) {
-            break;
+        if (line == NULL) {
+            break;              /* EOF */
+        }
+        if (line[0] == '\0') {
+            continue;           /* Skip blank line. */
         }
 
-        add_history(cmdline);
+        add_history(line);
 
-        int cmd_argc = parse_argv(cmdline);
+        int cmd_argc = parse_argv(line);
         char *cmd = strdup(cmd_argv[0]);
 
         pid_t pid = fork();
@@ -121,7 +124,7 @@ int main(int argc, char *argv[])
         }
 
         free(cmd);
-        free(cmdline);
+        free(line);
         free_argv(cmd_argc);
     }
     printf("\n");
