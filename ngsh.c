@@ -9,11 +9,11 @@
 #include "lex.yy.h"
 
 #define PROMPT_SIZE 128
-#define ARGV_SIZE 128
+#define TOKEN_SIZE 128
 #define ENVP_SIZE 1024
 
-int argc;
-char *argv[ARGV_SIZE];
+int token_count;
+char *token[TOKEN_SIZE];
 char *envp[ENVP_SIZE];
 
 extern char **environ;
@@ -36,6 +36,21 @@ static void free_envp()
     }
 }
 
+void add_token(char *buf)
+{
+    token[token_count++] = strdup(buf);
+}
+
+void free_token()
+{
+    int i;
+    for (i = 0; i < token_count; i++) {
+        free(token[i]);
+        token[i] = NULL;
+    }
+    token_count = 0;
+}
+
 static int execvpe(const char *file, char *argv[], char *envp[])
 {
     char **saved_environ = environ;
@@ -45,34 +60,70 @@ static int execvpe(const char *file, char *argv[], char *envp[])
     return r;
 }
 
-void add_argv(char *buf)
+int commit()
 {
-    argv[argc++] = strdup(buf);
-}
+    int redirect_stdin = 0, redirect_stdout = 0;
+    char *rstdin, *rstdout;
 
-void free_argv()
-{
+    int argc = 0;
+    char **argv = (char **) malloc(sizeof(char *) * token_count);
+
     int i;
-    for (i = 0; i < argc; i++) {
-        free(argv[i]);
-        argv[i] = 0;
+    for (i = 0; i < token_count; i++) {
+        if (strcmp(token[i], "<") == 0) {
+            redirect_stdin = 1;
+            rstdin = token[++i];
+        } else if (strcmp(token[i], ">") == 0) {
+            redirect_stdout = 1;
+            rstdout = token[++i];
+        } else {
+            argv[argc++] = strdup(token[i]);
+        }
     }
-    argc = 0;
-}
+    argv[argc] = NULL;
 
+    if (rstdin == NULL || rstdout == NULL) {
+        fprintf(stderr, "NGSH: Parse error\n");
+        return 1;
+    }
 
-void commit()
-{
     char *cmd = strdup(argv[0]);
     pid_t pid = fork();
     if (pid == 0) {
+        if (redirect_stdin) {
+            FILE *fin;
+            if ((fin = fopen(rstdin, "r")) == NULL) {
+                perror("NGSH");
+                _exit(EXIT_FAILURE);
+            }
+            dup2(fileno(fin), STDIN_FILENO);
+            fclose(fin);
+        }
+        if (redirect_stdout) {
+            FILE *fout;
+            if ((fout = fopen(rstdout, "w")) == NULL) {
+                perror("NGSH");
+                _exit(EXIT_FAILURE);
+            }
+            dup2(fileno(fout), STDOUT_FILENO);
+            fclose(fout);
+        }
+
         execvpe(cmd, argv, envp);
         // The exec() functions return only if an error has occurred. //
-        printf("NGSH> command not found: %s\n", cmd);
+        fprintf(stderr, "NGSH: Command not found: %s\n", cmd);
         _exit(EXIT_FAILURE);
     } else {
         wait(NULL);
     }
+    free(cmd);
+
+    for (i = 0; i < argc; i++) {
+        free(argv[i]);
+    }
+    free(argv);
+
+    return 0;
 }
 
 static char *set_prompt()

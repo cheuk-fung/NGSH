@@ -15,10 +15,10 @@ char *yylinebuf;
 
 %%
 
-"\n"		{ commit(); free_argv(); }
-[<>|]		{ add_argv(yytext); }
-[^ \t\n<>|]+	{ add_argv(yytext); }
-[ \t]		{ }
+"\n"		{ commit(); free_token(); }
+[<>|]		{ add_token(yytext); }
+[^ \t\n<>|]+	{ add_token(yytext); }
+.		{ }
 
 %%
 

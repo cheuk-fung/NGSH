@@ -1,8 +1,8 @@
 #ifndef _NGSH_H
 #define _NGSH_H
 
-void commit();
-void add_argv(char *);
-void free_argv();
+void add_token(char *);
+void free_token();
+int commit();
 
 #endif /* ngsh.h */
