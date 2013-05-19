@@ -6,6 +6,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+#include "builtin.h"
 #include "lex.yy.h"
 
 #define PROMPT_SIZE 128
@@ -32,7 +33,7 @@ static int load_envp()
     return envc;
 }
 
-static void free_envp()
+void free_envp()
 {
     int envc = 0;
     for (; envp[envc] != NULL; envc++) {
@@ -63,6 +64,22 @@ int build_pipe()
     }
 
     return 0;
+}
+
+void cleanup(int argc, char **argv)
+{
+    if (post_fildes[1] != -1) {
+        prev_fildes[0] = post_fildes[0];
+        prev_fildes[1] = post_fildes[1];
+
+        close(post_fildes[1]);
+    }
+
+    int i;
+    for (i = 0; i < argc; i++) {
+        free(argv[i]);
+    }
+    free(argv);
 }
 
 static int execvpe(const char *file, char *argv[], char *envp[])
@@ -102,62 +119,60 @@ int commit()
         return EXIT_FAILURE;
     }
 
-    char *cmd = strdup(argv[0]);
-    pid_t pid = fork();
-    if (pid == -1) {
-        perror(NGSH);
-        return EXIT_FAILURE;
-    } else if (pid == 0) {
-        if (prev_fildes[0] != -1) {
-            close(prev_fildes[1]);
-            dup2(prev_fildes[0], STDIN_FILENO);
-            close(prev_fildes[0]);
-        }
-        if (post_fildes[1] != -1) {
-            close(post_fildes[0]);
-            dup2(post_fildes[1], STDOUT_FILENO);
-            close(post_fildes[1]);
-        }
+    char *cmd = argv[0];
+    builtin_handle handle = get_builtin(cmd);
+    if (handle && prev_fildes[0] == -1 && post_fildes[0] == -1) {
+        /* A built-in command without any pipes should be executed directly. */
+        handle(argc, argv);
+    } else {
+        pid_t pid = fork();
+        if (pid == -1) {
+            perror(NGSH);
+            return EXIT_FAILURE;
+        } else if (pid == 0) {
+            if (prev_fildes[0] != -1) {
+                close(prev_fildes[1]);
+                dup2(prev_fildes[0], STDIN_FILENO);
+                close(prev_fildes[0]);
+            }
+            if (post_fildes[1] != -1) {
+                close(post_fildes[0]);
+                dup2(post_fildes[1], STDOUT_FILENO);
+                close(post_fildes[1]);
+            }
 
-        if (redirect_stdin) {
-            FILE *fin;
-            if ((fin = fopen(rstdin, "r")) == NULL) {
-                perror(NGSH);
+            if (redirect_stdin) {
+                FILE *fin;
+                if ((fin = fopen(rstdin, "r")) == NULL) {
+                    perror(NGSH);
+                    _exit(EXIT_FAILURE);
+                }
+                dup2(fileno(fin), STDIN_FILENO);
+                fclose(fin);
+            }
+            if (redirect_stdout) {
+                FILE *fout;
+                if ((fout = fopen(rstdout, "w")) == NULL) {
+                    perror(NGSH);
+                    _exit(EXIT_FAILURE);
+                }
+                dup2(fileno(fout), STDOUT_FILENO);
+                fclose(fout);
+            }
+
+            if (handle) {
+                handle(argc, argv);
+            } else {
+                execvpe(cmd, argv, envp);
+                // The exec() functions return only if an error has occurred. //
+                fprintf(stderr, "NGSH: Command not found: %s\n", cmd);
                 _exit(EXIT_FAILURE);
             }
-            dup2(fileno(fin), STDIN_FILENO);
-            fclose(fin);
         }
-        if (redirect_stdout) {
-            FILE *fout;
-            if ((fout = fopen(rstdout, "w")) == NULL) {
-                perror(NGSH);
-                _exit(EXIT_FAILURE);
-            }
-            dup2(fileno(fout), STDOUT_FILENO);
-            fclose(fout);
-        }
-
-        execvpe(cmd, argv, envp);
-        // The exec() functions return only if an error has occurred. //
-        fprintf(stderr, "NGSH: Command not found: %s\n", cmd);
-        _exit(EXIT_FAILURE);
+        wait(NULL);
     }
 
-    wait(NULL);
-
-    if (post_fildes[1] != -1) {
-        prev_fildes[0] = post_fildes[0];
-        prev_fildes[1] = post_fildes[1];
-
-        close(post_fildes[1]);
-    }
-
-    free(cmd);
-    for (i = 0; i < argc; i++) {
-        free(argv[i]);
-    }
-    free(argv);
+    cleanup(argc, argv);
 
     return 0;
 }
@@ -215,7 +230,7 @@ int main(int argc, char *argv[])
     }
     printf("\n");
 
-    free_envp();
+    builtin_exit(0, NULL);
 
-    return 0;
+    return EXIT_SUCCESS;
 }

@@ -5,7 +5,7 @@ LDFLAGS += -lreadline
 ngsh : ngsh.o builtin.o lex.yy.o
 
 ngsh.o : ngsh.h lex.yy.h builtin.h
-builtin.o : builtin.h
+builtin.o : ngsh.h builtin.h
 lex.yy.o : ngsh.h lex.yy.h
 lex.yy.h lex.yy.c : lexer.l
 	flex $<

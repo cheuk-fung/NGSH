@@ -1,0 +1,4 @@
+ngsh
+lex.yy.c
+lex.yy.h
+*.o
