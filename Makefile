@@ -2,13 +2,15 @@ CC = clang
 CFLAGS += -Wall -g
 LDFLAGS += -lreadline
 
-ngsh : ngsh.o lex.yy.o
-ngsh.o: ngsh.h lex.yy.h
+ngsh : ngsh.o builtin.o lex.yy.o
+
+ngsh.o : ngsh.h lex.yy.h builtin.h
+builtin.o : builtin.h
+lex.yy.o : ngsh.h lex.yy.h
 lex.yy.h lex.yy.c : lexer.l
 	flex $<
-lex.yy.o: ngsh.h
 
 .PHONY : clean
 clean :
-	$(RM) ngsh.o lex.yy.o lex.yy.h lex.yy.c ngsh
+	$(RM) ngsh.o lex.yy.o lex.yy.h lex.yy.c builtin.o ngsh
 

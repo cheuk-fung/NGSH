@@ -6,4 +6,4 @@ void free_token();
 int build_pipe();
 int commit();
 
-#endif /* ngsh.h */
+#endif                          /* ngsh.h */
