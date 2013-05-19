@@ -16,7 +16,14 @@ char *yylinebuf;
 %%
 
 "\n"		{ commit(); free_token(); }
-[<>|]		{ add_token(yytext); }
+"|"		{
+			if (build_pipe() == -1) {
+				return -1;
+			}
+			commit();
+			free_token();
+		}
+[<>]		{ add_token(yytext); }
 [^ \t\n<>|]+	{ add_token(yytext); }
 .		{ }
 

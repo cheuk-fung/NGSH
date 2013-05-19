@@ -3,6 +3,7 @@
 
 void add_token(char *);
 void free_token();
+int build_pipe();
 int commit();
 
 #endif /* ngsh.h */

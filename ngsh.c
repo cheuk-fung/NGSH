@@ -12,9 +12,13 @@
 #define TOKEN_SIZE 128
 #define ENVP_SIZE 1024
 
+const char NGSH[] = "ngsh";
+
 int token_count;
 char *token[TOKEN_SIZE];
 char *envp[ENVP_SIZE];
+
+int prev_fildes[2], post_fildes[2];
 
 extern char **environ;
 extern char *yylinebuf;
@@ -51,6 +55,16 @@ void free_token()
     token_count = 0;
 }
 
+int build_pipe()
+{
+    if (pipe(post_fildes) == -1) {
+        perror(NGSH);
+        return -1;
+    }
+
+    return 0;
+}
+
 static int execvpe(const char *file, char *argv[], char *envp[])
 {
     char **saved_environ = environ;
@@ -82,18 +96,33 @@ int commit()
     }
     argv[argc] = NULL;
 
-    if (rstdin == NULL || rstdout == NULL) {
+    if ((redirect_stdin && rstdin == NULL)
+        || (redirect_stdout && rstdout == NULL)) {
         fprintf(stderr, "NGSH: Parse error\n");
-        return 1;
+        return EXIT_FAILURE;
     }
 
     char *cmd = strdup(argv[0]);
     pid_t pid = fork();
-    if (pid == 0) {
+    if (pid == -1) {
+        perror(NGSH);
+        return EXIT_FAILURE;
+    } else if (pid == 0) {
+        if (prev_fildes[0] != -1) {
+            close(prev_fildes[1]);
+            dup2(prev_fildes[0], STDIN_FILENO);
+            close(prev_fildes[0]);
+        }
+        if (post_fildes[1] != -1) {
+            close(post_fildes[0]);
+            dup2(post_fildes[1], STDOUT_FILENO);
+            close(post_fildes[1]);
+        }
+
         if (redirect_stdin) {
             FILE *fin;
             if ((fin = fopen(rstdin, "r")) == NULL) {
-                perror("NGSH");
+                perror(NGSH);
                 _exit(EXIT_FAILURE);
             }
             dup2(fileno(fin), STDIN_FILENO);
@@ -102,7 +131,7 @@ int commit()
         if (redirect_stdout) {
             FILE *fout;
             if ((fout = fopen(rstdout, "w")) == NULL) {
-                perror("NGSH");
+                perror(NGSH);
                 _exit(EXIT_FAILURE);
             }
             dup2(fileno(fout), STDOUT_FILENO);
@@ -113,11 +142,18 @@ int commit()
         // The exec() functions return only if an error has occurred. //
         fprintf(stderr, "NGSH: Command not found: %s\n", cmd);
         _exit(EXIT_FAILURE);
-    } else {
-        wait(NULL);
     }
-    free(cmd);
 
+    wait(NULL);
+
+    if (post_fildes[1] != -1) {
+        prev_fildes[0] = post_fildes[0];
+        prev_fildes[1] = post_fildes[1];
+
+        close(post_fildes[1]);
+    }
+
+    free(cmd);
     for (i = 0; i < argc; i++) {
         free(argv[i]);
     }
@@ -156,6 +192,9 @@ int main(int argc, char *argv[])
     load_envp();
 
     while (1) {
+        prev_fildes[0] = prev_fildes[1] = -1;
+        post_fildes[0] = post_fildes[1] = -1;
+
         char *prompt = set_prompt();
         char *line = readline(prompt);
         free(prompt);
