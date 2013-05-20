@@ -7,8 +7,6 @@ struct builtin_entry {
     builtin_handle handle;
 };
 
-extern const struct builtin_entry builtin_table[];
-
 int builtin_cd(int, char **);
 int builtin_echo(int, char **);
 int builtin_exit(int, char **);
