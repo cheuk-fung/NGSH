@@ -17,6 +17,7 @@ const char NGSH[] = "ngsh";
 
 int token_count;
 char *token[TOKEN_SIZE];
+char *cmd_argv[TOKEN_SIZE];
 char *envp[ENVP_SIZE];
 
 int saved_fildes[2], pipe_fildes[2];
@@ -56,15 +57,6 @@ void free_token()
     token_count = 0;
 }
 
-void free_argv(int argc, char **argv)
-{
-    int i;
-    for (i = 0; i < argc; i++) {
-        free(argv[i]);
-    }
-    free(argv);
-}
-
 int build_pipe()
 {
     if (pipe(pipe_fildes) == -1) {
@@ -90,7 +82,6 @@ int commit()
     char *rstdin_file, *rstdout_file;
 
     int argc = 0;
-    char **argv = (char **) malloc(sizeof(char *) * (token_count + 1));
 
     int i;
     for (i = 0; i < token_count; i++) {
@@ -101,29 +92,29 @@ int commit()
             redirect_stdout = 1;
             rstdout_file = token[++i];
         } else {
-            argv[argc++] = strdup(token[i]);
+            cmd_argv[argc++] = token[i];
         }
     }
-    argv[argc] = (char *) NULL;
+    cmd_argv[argc] = (char *) NULL;
 
     if ((redirect_stdin && rstdin_file == NULL)
         || (redirect_stdout && rstdout_file == NULL)) {
         fprintf(stderr, "%s: Parse error\n", NGSH);
-        goto ERROR;
+        return -1;
     }
 
-    char *cmd = argv[0];
+    char *cmd = cmd_argv[0];
     builtin_handle handle = get_builtin(cmd);
     if (handle && saved_fildes[0] == -1 && pipe_fildes[0] == -1
         && !redirect_stdin && !redirect_stdout) {
         /* A built-in command without any pipes or redirects should be
          * executed directly. */
-        handle(argc, argv);
+        handle(argc, cmd_argv);
     } else {
         pid_t pid = fork();
         if (pid == -1) {
             perror(NGSH);
-            goto ERROR;
+            return -1;
         } else if (pid == 0) {
             if (saved_fildes[0] != -1) {
                 if (dup2(saved_fildes[0], STDIN_FILENO) == -1) {
@@ -178,12 +169,12 @@ int commit()
             }
 
             if (handle) {
-                if (handle(argc, argv) == -1) {
+                if (handle(argc, cmd_argv) == -1) {
                     _exit(EXIT_FAILURE);
                 }
                 _exit(EXIT_SUCCESS);
             } else {
-                execvpe(cmd, argv, envp);
+                execvpe(cmd, cmd_argv, envp);
                 // The exec() functions return only if an error has occurred. //
                 fprintf(stderr, "%s: %s: Command not found\n", NGSH, cmd);
                 _exit(EXIT_FAILURE);
@@ -207,12 +198,7 @@ int commit()
         pipe_fildes[0] = pipe_fildes[1] = -1;
     }
 
-    free_argv(argc, argv);
     return 0;
-
-  ERROR:
-    free_argv(argc, argv);
-    return -1;
 }
 
 static char *set_prompt()

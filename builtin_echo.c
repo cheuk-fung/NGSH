@@ -12,7 +12,7 @@ int builtin_echo(int argc, char *argv[])
     int newline = 1;
     int escapes = 0;
 
-    char opt;
+    int opt;
     while ((opt = getopt(argc, argv, optstring)) != -1) {
         switch (opt) {
         case 'n':
@@ -24,7 +24,7 @@ int builtin_echo(int argc, char *argv[])
         case 'E':
             escapes = 0;
             break;
-        case '?':
+        default:               /* ? */
             return -1;
         }
     }

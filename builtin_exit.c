@@ -15,7 +15,6 @@ int builtin_exit(int argc, char *argv[])
         rval = atoi(argv[1]);
     }
 
-    free_argv(argc, argv);
     free_envp();
 
     exit(rval);
