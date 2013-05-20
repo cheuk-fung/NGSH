@@ -7,8 +7,8 @@ OBJS = ngsh.o builtin_cd.o builtin_echo.o builtin_exit.o builtin_export.o builti
 ngsh : ${OBJS}
 
 ngsh.o : ngsh.h lex.yy.h builtin.h
-builtin_cd.o builtin_echo.o builtin_export.o builtin_history.o : builtin.h
-builtin_exit.o : builtin.h ngsh.h
+builtin_cd.o builtin_echo.o builtin_export.o : builtin.h
+builtin_exit.o builtin_history.o : builtin.h ngsh.h
 lex.yy.o : ngsh.h lex.yy.h
 lex.yy.h lex.yy.c : lexer.l
 	flex $<

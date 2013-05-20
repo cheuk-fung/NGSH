@@ -7,4 +7,6 @@ int build_pipe();
 int commit();
 void free_envp();
 
+extern const char *NGSH;
+
 #endif                          /* ngsh.h */

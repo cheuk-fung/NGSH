@@ -13,7 +13,7 @@
 #define TOKEN_SIZE 128
 #define ENVP_SIZE 1024
 
-const char NGSH[] = "ngsh";
+const char *NGSH = "ngsh";
 
 int token_count;
 char *token[TOKEN_SIZE];
@@ -177,7 +177,7 @@ int commit()
                 _exit(EXIT_SUCCESS);
             } else {
                 execvpe(cmd, cmd_argv, envp);
-                // The exec() functions return only if an error has occurred. //
+                /* The exec() functions return only if an error has occurred. */
                 fprintf(stderr, "%s: %s: Command not found\n", NGSH, cmd);
                 _exit(EXIT_FAILURE);
             }
@@ -243,7 +243,7 @@ int main(int argc, char *argv[])
             break;              /* EOF */
         }
         if (line[0] == '\0') {
-            continue;           /* Skip blank line. */
+            continue;           /* skip blank line */
         }
 
         add_history(line);
