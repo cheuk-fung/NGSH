@@ -51,7 +51,9 @@ void free_token()
 {
     int i;
     for (i = 0; i < token_count; i++) {
-        free(token[i]);
+        /* FIXME: Uncomment the following line causes weird behavior of
+         * getopt, but keep it commented out will cause a memory leak. */
+        // free(token[i]);
         token[i] = NULL;
     }
     token_count = 0;
