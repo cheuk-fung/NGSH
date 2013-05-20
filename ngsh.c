@@ -56,6 +56,15 @@ void free_token()
     token_count = 0;
 }
 
+void free_argv(int argc, char **argv)
+{
+    int i;
+    for (i = 0; i < argc; i++) {
+        free(argv[i]);
+    }
+    free(argv);
+}
+
 int build_pipe()
 {
     if (pipe(post_fildes) == -1) {
@@ -64,22 +73,6 @@ int build_pipe()
     }
 
     return 0;
-}
-
-void cleanup(int argc, char **argv)
-{
-    if (post_fildes[1] != -1) {
-        prev_fildes[0] = post_fildes[0];
-        prev_fildes[1] = post_fildes[1];
-
-        close(post_fildes[1]);
-    }
-
-    int i;
-    for (i = 0; i < argc; i++) {
-        free(argv[i]);
-    }
-    free(argv);
 }
 
 static int execvpe(const char *file, char *argv[], char *envp[])
@@ -97,7 +90,7 @@ int commit()
     char *rstdin, *rstdout;
 
     int argc = 0;
-    char **argv = (char **) malloc(sizeof(char *) * token_count);
+    char **argv = (char **) malloc(sizeof(char *) * (token_count + 1));
 
     int i;
     for (i = 0; i < token_count; i++) {
@@ -111,12 +104,12 @@ int commit()
             argv[argc++] = strdup(token[i]);
         }
     }
-    argv[argc] = NULL;
+    argv[argc] = (char *) NULL;
 
     if ((redirect_stdin && rstdin == NULL)
         || (redirect_stdout && rstdout == NULL)) {
         fprintf(stderr, "NGSH: Parse error\n");
-        return EXIT_FAILURE;
+        return -1;
     }
 
     char *cmd = argv[0];
@@ -128,7 +121,7 @@ int commit()
         pid_t pid = fork();
         if (pid == -1) {
             perror(NGSH);
-            return EXIT_FAILURE;
+            return -1;
         } else if (pid == 0) {
             if (prev_fildes[0] != -1) {
                 close(prev_fildes[1]);
@@ -172,7 +165,14 @@ int commit()
         wait(NULL);
     }
 
-    cleanup(argc, argv);
+    if (post_fildes[1] != -1) {
+        prev_fildes[0] = post_fildes[0];
+        prev_fildes[1] = post_fildes[1];
+
+        close(post_fildes[1]);
+    }
+
+    free_argv(argc, argv);
 
     return 0;
 }
@@ -232,5 +232,5 @@ int main(int argc, char *argv[])
 
     builtin_exit(0, NULL);
 
-    return EXIT_SUCCESS;
+    return 0;
 }
