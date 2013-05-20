@@ -19,7 +19,7 @@ int token_count;
 char *token[TOKEN_SIZE];
 char *envp[ENVP_SIZE];
 
-int prev_fildes[2], post_fildes[2];
+int saved_fildes[2], pipe_fildes[2];
 
 extern char **environ;
 extern char *yylinebuf;
@@ -67,7 +67,7 @@ void free_argv(int argc, char **argv)
 
 int build_pipe()
 {
-    if (pipe(post_fildes) == -1) {
+    if (pipe(pipe_fildes) == -1) {
         perror(NGSH);
         return -1;
     }
@@ -87,7 +87,7 @@ static int execvpe(const char *file, char *argv[], char *envp[])
 int commit()
 {
     int redirect_stdin = 0, redirect_stdout = 0;
-    char *rstdin, *rstdout;
+    char *rstdin_file, *rstdout_file;
 
     int argc = 0;
     char **argv = (char **) malloc(sizeof(char *) * (token_count + 1));
@@ -96,85 +96,123 @@ int commit()
     for (i = 0; i < token_count; i++) {
         if (strcmp(token[i], "<") == 0) {
             redirect_stdin = 1;
-            rstdin = token[++i];
+            rstdin_file = token[++i];
         } else if (strcmp(token[i], ">") == 0) {
             redirect_stdout = 1;
-            rstdout = token[++i];
+            rstdout_file = token[++i];
         } else {
             argv[argc++] = strdup(token[i]);
         }
     }
     argv[argc] = (char *) NULL;
 
-    if ((redirect_stdin && rstdin == NULL)
-        || (redirect_stdout && rstdout == NULL)) {
-        fprintf(stderr, "NGSH: Parse error\n");
-        return -1;
+    if ((redirect_stdin && rstdin_file == NULL)
+        || (redirect_stdout && rstdout_file == NULL)) {
+        fprintf(stderr, "%s: Parse error\n", NGSH);
+        goto ERROR;
     }
 
     char *cmd = argv[0];
     builtin_handle handle = get_builtin(cmd);
-    if (handle && prev_fildes[0] == -1 && post_fildes[0] == -1) {
-        /* A built-in command without any pipes should be executed directly. */
+    if (handle && saved_fildes[0] == -1 && pipe_fildes[0] == -1
+        && !redirect_stdin && !redirect_stdout) {
+        /* A built-in command without any pipes or redirects should be
+         * executed directly. */
         handle(argc, argv);
     } else {
         pid_t pid = fork();
         if (pid == -1) {
             perror(NGSH);
-            return -1;
+            goto ERROR;
         } else if (pid == 0) {
-            if (prev_fildes[0] != -1) {
-                close(prev_fildes[1]);
-                dup2(prev_fildes[0], STDIN_FILENO);
-                close(prev_fildes[0]);
+            if (saved_fildes[0] != -1) {
+                if (dup2(saved_fildes[0], STDIN_FILENO) == -1) {
+                    perror(NGSH);
+                    _exit(EXIT_FAILURE);
+                }
+                if (close(saved_fildes[0]) == -1) {
+                    perror(NGSH);
+                    _exit(EXIT_FAILURE);
+                }
             }
-            if (post_fildes[1] != -1) {
-                close(post_fildes[0]);
-                dup2(post_fildes[1], STDOUT_FILENO);
-                close(post_fildes[1]);
+            if (pipe_fildes[1] != -1) {
+                if (dup2(pipe_fildes[1], STDOUT_FILENO) == -1) {
+                    perror(NGSH);
+                    _exit(EXIT_FAILURE);
+                }
+                if (close(pipe_fildes[1]) == -1) {
+                    perror(NGSH);
+                    _exit(EXIT_FAILURE);
+                }
             }
 
             if (redirect_stdin) {
                 FILE *fin;
-                if ((fin = fopen(rstdin, "r")) == NULL) {
+                if ((fin = fopen(rstdin_file, "r")) == NULL) {
                     perror(NGSH);
                     _exit(EXIT_FAILURE);
                 }
-                dup2(fileno(fin), STDIN_FILENO);
-                fclose(fin);
+                if (dup2(fileno(fin), STDIN_FILENO) == -1) {
+                    perror(NGSH);
+                    _exit(EXIT_FAILURE);
+                }
+                if (fclose(fin) == EOF) {
+                    perror(NGSH);
+                    _exit(EXIT_FAILURE);
+                }
             }
             if (redirect_stdout) {
                 FILE *fout;
-                if ((fout = fopen(rstdout, "w")) == NULL) {
+                if ((fout = fopen(rstdout_file, "w")) == NULL) {
                     perror(NGSH);
                     _exit(EXIT_FAILURE);
                 }
-                dup2(fileno(fout), STDOUT_FILENO);
-                fclose(fout);
+                if (dup2(fileno(fout), STDOUT_FILENO) == -1) {
+                    perror(NGSH);
+                    _exit(EXIT_FAILURE);
+                }
+                if (fclose(fout) == EOF) {
+                    perror(NGSH);
+                    _exit(EXIT_FAILURE);
+                }
             }
 
             if (handle) {
-                handle(argc, argv);
+                if (handle(argc, argv) == -1) {
+                    _exit(EXIT_FAILURE);
+                }
+                _exit(EXIT_SUCCESS);
             } else {
                 execvpe(cmd, argv, envp);
                 // The exec() functions return only if an error has occurred. //
-                fprintf(stderr, "NGSH: Command not found: %s\n", cmd);
+                fprintf(stderr, "%s: %s: Command not found\n", NGSH, cmd);
                 _exit(EXIT_FAILURE);
             }
         }
-        wait(NULL);
+
+        if (wait(NULL) == (pid_t) - 1) {
+            perror(NGSH);
+        }
     }
 
-    if (post_fildes[1] != -1) {
-        prev_fildes[0] = post_fildes[0];
-        prev_fildes[1] = post_fildes[1];
+    if (pipe_fildes[0] != -1) {
+        saved_fildes[0] = pipe_fildes[0];
+        saved_fildes[1] = pipe_fildes[1];
 
-        close(post_fildes[1]);
+        if (close(pipe_fildes[1]) == -1) {
+            puts("pipe_fildes[1]");
+            perror(NGSH);
+        }
+
+        pipe_fildes[0] = pipe_fildes[1] = -1;
     }
 
     free_argv(argc, argv);
-
     return 0;
+
+  ERROR:
+    free_argv(argc, argv);
+    return -1;
 }
 
 static char *set_prompt()
@@ -207,8 +245,8 @@ int main(int argc, char *argv[])
     load_envp();
 
     while (1) {
-        prev_fildes[0] = prev_fildes[1] = -1;
-        post_fildes[0] = post_fildes[1] = -1;
+        saved_fildes[0] = saved_fildes[1] = -1;
+        pipe_fildes[0] = pipe_fildes[1] = -1;
 
         char *prompt = set_prompt();
         char *line = readline(prompt);
@@ -225,6 +263,12 @@ int main(int argc, char *argv[])
         strcat(line, "\n");
         yylinebuf = line;
         yylex();
+
+        if (saved_fildes[0] != -1) {
+            if (close(saved_fildes[0]) == -1) {
+                perror(NGSH);
+            }
+        }
 
         free(line);
     }
