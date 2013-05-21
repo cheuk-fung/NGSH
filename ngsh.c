@@ -11,36 +11,17 @@
 
 #define PROMPT_SIZE 128
 #define TOKEN_SIZE 128
-#define ENVP_SIZE 1024
 
 const char *NGSH = "ngsh";
 
 int token_count;
 char *token[TOKEN_SIZE];
 char *cmd_argv[TOKEN_SIZE];
-char *envp[ENVP_SIZE];
 
 int saved_fildes[2], pipe_fildes[2];
 
 extern char **environ;
 extern char *yylinebuf;
-
-static int load_envp()
-{
-    int envc = 0;
-    for (; environ[envc] != NULL; envc++) {
-        envp[envc] = strdup(environ[envc]);
-    }
-    return envc;
-}
-
-void free_envp()
-{
-    int envc = 0;
-    for (; envp[envc] != NULL; envc++) {
-        free(envp[envc]);
-    }
-}
 
 void add_token(char *buf)
 {
@@ -67,15 +48,6 @@ int build_pipe()
     }
 
     return 0;
-}
-
-static int execvpe(const char *file, char *argv[], char *envp[])
-{
-    char **saved_environ = environ;
-    environ = envp;
-    int r = execvp(file, argv);
-    environ = saved_environ;
-    return r;
 }
 
 int commit()
@@ -176,7 +148,7 @@ int commit()
                 }
                 _exit(EXIT_SUCCESS);
             } else {
-                execvpe(cmd, cmd_argv, envp);
+                execvp(cmd, cmd_argv);
                 /* The exec() functions return only if an error has occurred. */
                 fprintf(stderr, "%s: %s: Command not found\n", NGSH, cmd);
                 _exit(EXIT_FAILURE);
@@ -230,8 +202,6 @@ static char *set_prompt()
 
 int main(int argc, char *argv[])
 {
-    load_envp();
-
     while (1) {
         saved_fildes[0] = saved_fildes[1] = -1;
         pipe_fildes[0] = pipe_fildes[1] = -1;
