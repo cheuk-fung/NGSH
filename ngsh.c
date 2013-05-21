@@ -11,6 +11,7 @@
 
 #define PROMPT_SIZE 128
 #define TOKEN_SIZE 128
+#define TOKEN_LENGTH 1024
 
 const char *NGSH = "ngsh";
 
@@ -25,7 +26,41 @@ extern char *yylinebuf;
 
 void add_token(char *buf)
 {
-    token[token_count++] = strdup(buf);
+    token[token_count] = (char *) malloc(sizeof(char) * TOKEN_LENGTH);
+    char *curr = token[token_count];
+
+    while (*buf) {
+        if (*buf == '$') {
+            if (*++buf) {
+                if (*buf == '$') {
+                    pid_t pid = getpid();
+                    curr += sprintf(curr, "%d", pid);
+                    buf++;
+                } else {
+                    int length = 1;
+                    while (buf[length] && buf[length] != '$') length++;
+                    char *xbuf = strndup(buf, length);
+                    char *env = getenv(xbuf);
+                    if (env) {
+                        while (*env) {
+                            *curr++ = *env++;
+                        }
+                    }
+
+                    buf += length;
+                    free(xbuf);
+                }
+            } else {
+                *curr++ = '$';
+            }
+        } else {
+            *curr++ = *buf++;
+        }
+    }
+    *curr = '\0';
+
+    token[token_count] = realloc(token[token_count], curr - token[token_count] + 1);
+    token_count++;
 }
 
 void free_token()
