@@ -9,14 +9,12 @@ int main(int argc, char *argv[])
 {
     const char *program = argv[0];
 
-    const char *optstring = "f:u";
-
     int format = 0;
     char *formatstring;
     int utc = 0;
 
     int opt;
-    while ((opt = getopt(argc, argv, optstring)) != -1) {
+    while ((opt = getopt(argc, argv, "f:u")) != -1) {
         switch (opt) {
         case 'f':
             format = 1;

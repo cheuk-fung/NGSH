@@ -7,13 +7,11 @@ extern int optind;
 
 int builtin_echo(int argc, char *argv[])
 {
-    static const char *optstring = "neE";
-
     int newline = 1;
     int escapes = 0;
 
     int opt;
-    while ((opt = getopt(argc, argv, optstring)) != -1) {
+    while ((opt = getopt(argc, argv, "neE")) != -1) {
         switch (opt) {
         case 'n':
             newline = 0;
@@ -28,8 +26,9 @@ int builtin_echo(int argc, char *argv[])
             goto ERROR;
         }
     }
-
+    argc -= optind;
     argv += optind;
+
     while (*argv) {
         if (escapes) {
             char *s = *argv;

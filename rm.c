@@ -9,15 +9,13 @@ int main(int argc, char *argv[])
 {
     const char *program = argv[0];
 
-    const char *optstring = "fidv";
-
     int force = 0;
     int interact = 0;
     int dir = 0;
     int verbose = 0;
 
     int opt;
-    while ((opt = getopt(argc, argv, optstring)) != -1) {
+    while ((opt = getopt(argc, argv, "fidv")) != -1) {
         switch (opt) {
         case 'f':
             force = 1;
@@ -35,8 +33,10 @@ int main(int argc, char *argv[])
             return -1;
         }
     }
+    argc -= optind;
+    argv += optind;
 
-    for (argv += optind; *argv; argv++) {
+    for (; *argv; argv++) {
         struct stat s;
         if (stat(*argv, &s) == -1) {
             if (!force) {

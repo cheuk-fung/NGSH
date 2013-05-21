@@ -10,13 +10,13 @@ extern int optind;
 
 int builtin_export(int argc, char *argv[])
 {
-    static const char *optstring = "pr";
+    char *progname = argv[0];
 
     int print = 0;
     int addition = 1;
 
     int opt;
-    while ((opt = getopt(argc, argv, optstring)) != -1) {
+    while ((opt = getopt(argc, argv, "pr")) != -1) {
         switch (opt) {
         case 'p':
             print = 1;
@@ -28,6 +28,8 @@ int builtin_export(int argc, char *argv[])
             goto ERROR;
         }
     }
+    argc -= optind;
+    argv += optind;
 
     if (print) {
         int environ_length = 0;
@@ -44,22 +46,22 @@ int builtin_export(int argc, char *argv[])
         goto SUCCESS;
     }
 
-    for (; optind < argc; optind++) {
+    for (; *argv; argv++) {
         char *c;
-        if ((c = strchr(argv[optind], '=')) == NULL) {
-            if (setenv(argv[optind], "", 0) == -1) {
-                perror(argv[0]);
+        if ((c = strchr(*argv, '=')) == NULL) {
+            if (setenv(*argv, "", 0) == -1) {
+                perror(progname);
                 goto ERROR;
             }
         } else {
-            if (c == argv[optind]) {
-                fprintf(stderr, "%s: Invalid argument\n", argv[0]);
+            if (c == *argv) {
+                fprintf(stderr, "%s: Invalid argument\n", progname);
                 goto ERROR;
             }
-            char *name = strndup(argv[optind], c - argv[optind]);
+            char *name = strndup(*argv, c - *argv);
             char *value = strdup(*(c + 1) == '\0' ? "" : c + 1);
             if (setenv(name, value, 1) == -1) {
-                perror(argv[0]);
+                perror(progname);
                 goto ERROR;
             }
             free(name);

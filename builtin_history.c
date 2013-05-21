@@ -10,14 +10,14 @@ extern int optind;
 
 int builtin_history(int argc, char *argv[])
 {
-    static const char *optstring = "ctr";
+    char *progname = argv[0];
 
     int clear = 0;
     int display_time = 0;
     int addition = 1;
 
     int opt;
-    while ((opt = getopt(argc, argv, optstring)) != -1) {
+    while ((opt = getopt(argc, argv, "ctr")) != -1) {
         switch (opt) {
         case 'c':
             clear = 1;
@@ -47,7 +47,7 @@ int builtin_history(int argc, char *argv[])
             time_t timestamp = history_get_time(history[i]);
             char timestring[128];
             if (ctime_r(&timestamp, timestring) == NULL) {
-                perror(argv[0]);
+                perror(progname);
                 goto ERROR;
             }
             int length = strlen(timestring);

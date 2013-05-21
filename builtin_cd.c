@@ -9,14 +9,15 @@ extern int optind;
 
 int builtin_cd(int argc, char *argv[])
 {
-    static const char *optstring = "pLP";
+    char *progname = argv[0];
+
     char *curpath = NULL;
 
     int print = 0;
     int physically = 0;
 
     int opt;
-    while ((opt = getopt(argc, argv, optstring)) != -1) {
+    while ((opt = getopt(argc, argv, "pLP")) != -1) {
         switch (opt) {
         case 'p':
             print = 1;
@@ -31,25 +32,27 @@ int builtin_cd(int argc, char *argv[])
             goto ERROR;
         }
     }
+    argc -= optind;
+    argv += optind;
 
-    if (optind == argc) {
+    if (argc == 0) {
         if ((curpath = getenv("HOME")) == NULL) {
-            perror(argv[0]);
+            perror(progname);
             goto ERROR;
         }
-    } else if (strcmp(argv[optind], "~") == 0) {
+    } else if (strcmp(*argv, "~") == 0) {
         if ((curpath = getenv("HOME")) == NULL) {
-            perror(argv[0]);
+            perror(progname);
             goto ERROR;
         }
-    } else if (strcmp(argv[optind], "-") == 0) {
+    } else if (strcmp(*argv, "-") == 0) {
         if ((curpath = getenv("OLDPWD")) == NULL) {
-            perror(argv[0]);
+            perror(progname);
             goto ERROR;
         }
         print = 1;
     } else {
-        curpath = argv[optind];
+        curpath = *argv;
     }
     curpath = strdup(curpath);
 
@@ -66,14 +69,14 @@ int builtin_cd(int argc, char *argv[])
         char *tmp = curpath;
         if ((curpath = realpath(tmp, NULL)) == NULL) {
             free(tmp);
-            perror(argv[0]);
+            perror(progname);
             goto ERROR;
         }
         free(tmp);
     }
 
     if (chdir(curpath) == -1) {
-        perror(argv[0]);
+        perror(progname);
         goto ERROR;
     }
     if (print) {
@@ -81,11 +84,11 @@ int builtin_cd(int argc, char *argv[])
     }
 
     if (setenv("OLDPWD", getenv("PWD"), 1) == -1) {
-        perror(argv[0]);
+        perror(progname);
         goto ERROR;
     }
     if (setenv("PWD", curpath, 1) == -1) {
-        perror(argv[0]);
+        perror(progname);
         goto ERROR;
     }
 
