@@ -87,11 +87,11 @@ int builtin_echo(int argc, char *argv[])
         printf("\n");
     }
 
-SUCCESS:
+  SUCCESS:
     optind = 1;
     return 0;
 
-ERROR:
+  ERROR:
     optind = 1;
     return -1;
 }

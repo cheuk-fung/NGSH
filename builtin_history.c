@@ -57,11 +57,11 @@ int builtin_history(int argc, char *argv[])
         printf("%s\n", history[i]->line);
     }
 
-SUCCESS:
+  SUCCESS:
     optind = 1;
     return 0;
 
-ERROR:
+  ERROR:
     optind = 1;
     return -1;
 }

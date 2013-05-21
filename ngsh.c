@@ -21,7 +21,6 @@ char *cmd_argv[TOKEN_SIZE];
 
 int saved_fildes[2], pipe_fildes[2];
 
-extern char **environ;
 extern char *yylinebuf;
 
 void add_token(char *buf)
@@ -37,9 +36,11 @@ void add_token(char *buf)
                     curr += sprintf(curr, "%d", pid);
                     buf++;
                 } else {
-                    int length = 1;
-                    while (buf[length] && buf[length] != '$') length++;
-                    char *xbuf = strndup(buf, length);
+                    int len = 1;
+                    while (buf[len] && buf[len] != '$' && buf[len] != '/') {
+                        len++;
+                    }
+                    char *xbuf = strndup(buf, len);
                     char *env = getenv(xbuf);
                     if (env) {
                         while (*env) {
@@ -47,7 +48,7 @@ void add_token(char *buf)
                         }
                     }
 
-                    buf += length;
+                    buf += len;
                     free(xbuf);
                 }
             } else {
@@ -59,7 +60,8 @@ void add_token(char *buf)
     }
     *curr = '\0';
 
-    token[token_count] = realloc(token[token_count], curr - token[token_count] + 1);
+    token[token_count] = realloc(token[token_count],
+                                 curr - token[token_count] + 1);
     token_count++;
 }
 
