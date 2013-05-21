@@ -25,12 +25,11 @@ int builtin_echo(int argc, char *argv[])
             escapes = 0;
             break;
         default:               /* ? */
-            return -1;
+            goto ERROR;
         }
     }
 
     argv += optind;
-    optind = 1;
     while (*argv) {
         if (escapes) {
             char *s = *argv;
@@ -47,7 +46,7 @@ int builtin_echo(int argc, char *argv[])
                         putchar('\b');
                         break;
                     case 'c':
-                        return 0;
+                        goto SUCCESS;
                     case 'e':
                         putchar('\e');
                         break;
@@ -88,5 +87,11 @@ int builtin_echo(int argc, char *argv[])
         printf("\n");
     }
 
+SUCCESS:
+    optind = 1;
     return 0;
+
+ERROR:
+    optind = 1;
+    return -1;
 }

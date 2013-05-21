@@ -5,7 +5,6 @@
 #include <unistd.h>
 
 #include "builtin.h"
-#include "ngsh.h"
 
 extern int optind;
 
@@ -30,14 +29,13 @@ int builtin_history(int argc, char *argv[])
             addition = -1;
             break;
         default:               /* ? */
-            return -1;
+            goto ERROR;
         }
     }
-    optind = 1;
 
     if (clear) {
         clear_history();
-        return 0;
+        goto SUCCESS;
     }
 
     HIST_ENTRY **history = history_list();
@@ -49,8 +47,8 @@ int builtin_history(int argc, char *argv[])
             time_t timestamp = history_get_time(history[i]);
             char timestring[128];
             if (ctime_r(&timestamp, timestring) == NULL) {
-                perror(NGSH);
-                return -1;
+                perror(argv[0]);
+                goto ERROR;
             }
             int length = strlen(timestring);
             timestring[length - 1] = '\0';      /* remove trailing '\n' */
@@ -59,5 +57,11 @@ int builtin_history(int argc, char *argv[])
         printf("%s\n", history[i]->line);
     }
 
+SUCCESS:
+    optind = 1;
     return 0;
+
+ERROR:
+    optind = 1;
+    return -1;
 }
