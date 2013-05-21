@@ -2,9 +2,10 @@ CC = clang
 CFLAGS += -Wall -g
 LDFLAGS += -lreadline
 
-all : ngsh
+PRGS = ngsh getenv
+all : ${PRGS}
 
-NGSH_OBJS = ngsh.o builtin_cd.o builtin_echo.o builtin_exit.o builtin_export.o builtin_history.o lex.yy.o
+NGSH_OBJS = ngsh.o builtin.o builtin_cd.o builtin_echo.o builtin_exit.o builtin_export.o builtin_history.o lex.yy.o
 ngsh : ${NGSH_OBJS}
 ngsh.o : ngsh.h lex.yy.h builtin.h
 builtin_cd.o builtin_echo.o builtin_export.o : builtin.h
@@ -13,6 +14,8 @@ lex.yy.o : ngsh.h lex.yy.h
 lex.yy.h lex.yy.c : lexer.l
 	flex $<
 
+getenv : getenv.o
+
 .PHONY : clean
 clean :
-	$(RM) ngsh ${NGSH_OBJS} lex.yy.h lex.yy.c
+	$(RM) ${PRGS} ${NGSH_OBJS} lex.yy.h lex.yy.c getenv.o

@@ -41,10 +41,10 @@ void add_token(char *buf)
                         len++;
                     }
                     char *xbuf = strndup(buf, len);
-                    char *env = getenv(xbuf);
-                    if (env) {
-                        while (*env) {
-                            *curr++ = *env++;
+                    char *value = getenv(xbuf);
+                    if (value) {
+                        while (*value) {
+                            *curr++ = *value++;
                         }
                     }
 
