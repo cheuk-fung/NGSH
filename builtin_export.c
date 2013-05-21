@@ -1,8 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
-#include "builtin.c"
+#include "builtin.h"
 
 extern char **environ;
 extern int optind;
@@ -30,9 +31,11 @@ int builtin_export(int argc, char *argv[])
 
     if (print) {
         int environ_length = 0;
-        while (environ[environ_length]) environ_length++;
+        while (environ[environ_length]) {
+            environ_length++;
+        }
 
-        int i = addition == 1 ? 0 :  environ_length - 1;
+        int i = addition == 1 ? 0 : environ_length - 1;
         int last = addition == 1 ? environ_length : -1;
         for (; i != last; i += addition) {
             printf("%s\n", environ[i]);
@@ -64,7 +67,7 @@ int builtin_export(int argc, char *argv[])
         }
     }
 
-SUCCESS:
+  SUCCESS:
     optind = 1;
     return 0;
 
