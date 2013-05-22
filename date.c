@@ -41,12 +41,9 @@ int main(int argc, char *argv[])
     }
 
     if (format) {
-        char buf[1024];
-        if (strftime(buf, sizeof buf, formatstring, tm) == 0) {
-            perror(program);
-            return -1;
-        }
-        printf("%s\n", buf);
+        char datestring[256];
+        strftime(datestring, sizeof datestring, formatstring, tm);
+        printf("%s\n", datestring);
     } else {
         char *asc = asctime(tm);
         if (asc == NULL) {

@@ -37,14 +37,14 @@ int main(int argc, char *argv[])
     argv += optind;
 
     for (; *argv; argv++) {
-        struct stat s;
-        if (stat(*argv, &s) == -1) {
+        struct stat statbuf;
+        if (stat(*argv, &statbuf) == -1) {
             if (!force) {
                 perror(program);
             }
             continue;
         }
-        if (S_ISDIR(s.st_mode) && !dir) {
+        if (S_ISDIR(statbuf.st_mode) && !dir) {
             if (!force) {
                 fprintf(stderr, "%s: cannot remove '%s': Is a directory\n",
                         program, *argv);

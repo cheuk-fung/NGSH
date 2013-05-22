@@ -2,7 +2,7 @@ CC = clang
 CFLAGS += -Wall -g
 LDFLAGS += -lreadline
 
-PRGS = ngsh date getenv rm
+PRGS = ngsh date getenv ls rm
 all : ${PRGS}
 
 NGSH_OBJS = ngsh.o builtin.o builtin_cd.o builtin_echo.o builtin_exit.o builtin_export.o builtin_history.o lex.yy.o
