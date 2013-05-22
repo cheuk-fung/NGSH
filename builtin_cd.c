@@ -9,7 +9,7 @@ extern int optind;
 
 int builtin_cd(int argc, char *argv[])
 {
-    char *progname = argv[0];
+    char *PROGNAME = argv[0];
 
     char *curpath = NULL;
 
@@ -37,17 +37,17 @@ int builtin_cd(int argc, char *argv[])
 
     if (argc == 0) {
         if ((curpath = getenv("HOME")) == NULL) {
-            perror(progname);
+            perror(PROGNAME);
             goto ERROR;
         }
     } else if (strcmp(*argv, "~") == 0) {
         if ((curpath = getenv("HOME")) == NULL) {
-            perror(progname);
+            perror(PROGNAME);
             goto ERROR;
         }
     } else if (strcmp(*argv, "-") == 0) {
         if ((curpath = getenv("OLDPWD")) == NULL) {
-            perror(progname);
+            perror(PROGNAME);
             goto ERROR;
         }
         print = 1;
@@ -69,14 +69,14 @@ int builtin_cd(int argc, char *argv[])
         char *tmp = curpath;
         if ((curpath = realpath(tmp, NULL)) == NULL) {
             free(tmp);
-            perror(progname);
+            perror(PROGNAME);
             goto ERROR;
         }
         free(tmp);
     }
 
     if (chdir(curpath) == -1) {
-        perror(progname);
+        perror(PROGNAME);
         goto ERROR;
     }
     if (print) {
@@ -84,11 +84,11 @@ int builtin_cd(int argc, char *argv[])
     }
 
     if (setenv("OLDPWD", getenv("PWD"), 1) == -1) {
-        perror(progname);
+        perror(PROGNAME);
         goto ERROR;
     }
     if (setenv("PWD", curpath, 1) == -1) {
-        perror(progname);
+        perror(PROGNAME);
         goto ERROR;
     }
 

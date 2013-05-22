@@ -54,7 +54,7 @@ static char *const sperm(mode_t mode)
 
 int main(int argc, char *argv[])
 {
-    const char *program = argv[0];
+    const char *PROGNAME = argv[0];
 
     int all = 0;
     int long_listing = 0;
@@ -87,7 +87,7 @@ int main(int argc, char *argv[])
 
         DIR *dirp;
         if ((dirp = opendir(*argv)) == NULL) {
-            perror(program);
+            perror(PROGNAME);
             continue;
         }
 
@@ -122,7 +122,7 @@ int main(int argc, char *argv[])
 
                 sprintf(fullname, "%s/%s", *argv, d_name[i]);
                 if (stat(fullname, &statbuf) == -1) {
-                    perror(program);
+                    perror(PROGNAME);
                     continue;
                 }
 
@@ -158,7 +158,7 @@ int main(int argc, char *argv[])
         }
 
         if (closedir(dirp) == -1) {
-            perror(program);
+            perror(PROGNAME);
         }
 
         free(d_name);

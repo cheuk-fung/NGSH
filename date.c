@@ -7,7 +7,7 @@ extern int optind;
 
 int main(int argc, char *argv[])
 {
-    const char *program = argv[0];
+    const char *PROGNAME = argv[0];
 
     int format = 0;
     char *formatstring;
@@ -36,7 +36,7 @@ int main(int argc, char *argv[])
         tm = localtime(&now);
     }
     if (tm == NULL) {
-        perror(program);
+        perror(PROGNAME);
         return -1;
     }
 
@@ -47,7 +47,7 @@ int main(int argc, char *argv[])
     } else {
         char *asc = asctime(tm);
         if (asc == NULL) {
-            perror(program);
+            perror(PROGNAME);
             return -1;
         }
         printf("%s", asc);

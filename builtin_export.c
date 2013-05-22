@@ -10,7 +10,7 @@ extern int optind;
 
 int builtin_export(int argc, char *argv[])
 {
-    char *progname = argv[0];
+    char *PROGNAME = argv[0];
 
     int print = 0;
     int addition = 1;
@@ -50,18 +50,18 @@ int builtin_export(int argc, char *argv[])
         char *c;
         if ((c = strchr(*argv, '=')) == NULL) {
             if (setenv(*argv, "", 0) == -1) {
-                perror(progname);
+                perror(PROGNAME);
                 goto ERROR;
             }
         } else {
             if (c == *argv) {
-                fprintf(stderr, "%s: Invalid argument\n", progname);
+                fprintf(stderr, "%s: Invalid argument\n", PROGNAME);
                 goto ERROR;
             }
             char *name = strndup(*argv, c - *argv);
             char *value = strdup(*(c + 1) == '\0' ? "" : c + 1);
             if (setenv(name, value, 1) == -1) {
-                perror(progname);
+                perror(PROGNAME);
                 goto ERROR;
             }
             free(name);

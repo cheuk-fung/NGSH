@@ -10,7 +10,7 @@ extern int optind;
 
 int builtin_history(int argc, char *argv[])
 {
-    char *progname = argv[0];
+    char *PROGNAME = argv[0];
 
     int clear = 0;
     int display_time = 0;
@@ -47,7 +47,7 @@ int builtin_history(int argc, char *argv[])
             time_t timestamp = history_get_time(history[i]);
             char timestring[128];
             if (ctime_r(&timestamp, timestring) == NULL) {
-                perror(progname);
+                perror(PROGNAME);
                 goto ERROR;
             }
             int length = strlen(timestring);

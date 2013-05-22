@@ -9,7 +9,7 @@ extern int optind;
 
 int main(int argc, char *argv[])
 {
-    const char *program = argv[0];
+    const char *PROGNAME = argv[0];
 
     int all = 0;
     int verbose = 0;
@@ -30,7 +30,7 @@ int main(int argc, char *argv[])
 
     DIR *dirp;
     if ((dirp = opendir("/proc")) == NULL) {
-        perror(program);
+        perror(PROGNAME);
         return -1;
     }
 
@@ -53,7 +53,7 @@ int main(int argc, char *argv[])
 
             sprintf(statbuf, "/proc/%s/stat", dirent->d_name);
             if ((fstat = fopen(statbuf, "r")) == NULL) {
-                perror(program);
+                perror(PROGNAME);
                 return -1;
             }
 
@@ -76,14 +76,14 @@ int main(int argc, char *argv[])
 
           NEXT:
             if (fclose(fstat) == EOF) {
-                perror(program);
+                perror(PROGNAME);
                 return -1;
             }
         }
     }
 
     if (closedir(dirp) == -1) {
-        perror(program);
+        perror(PROGNAME);
         return -1;
     }
 

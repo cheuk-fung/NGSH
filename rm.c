@@ -7,7 +7,7 @@ extern int optind;
 
 int main(int argc, char *argv[])
 {
-    const char *program = argv[0];
+    const char *PROGNAME = argv[0];
 
     int force = 0;
     int interact = 0;
@@ -40,19 +40,19 @@ int main(int argc, char *argv[])
         struct stat statbuf;
         if (stat(*argv, &statbuf) == -1) {
             if (!force) {
-                perror(program);
+                perror(PROGNAME);
             }
             continue;
         }
         if (S_ISDIR(statbuf.st_mode) && !dir) {
             if (!force) {
                 fprintf(stderr, "%s: cannot remove '%s': Is a directory\n",
-                        program, *argv);
+                        PROGNAME, *argv);
             }
             continue;
         }
         if (interact) {
-            printf("%s: remove '%s'? (y/N) ", program, *argv);
+            printf("%s: remove '%s'? (y/N) ", PROGNAME, *argv);
             char c;
             scanf(" %c", &c);
             if (c != 'y') {
@@ -61,11 +61,11 @@ int main(int argc, char *argv[])
         }
         if (remove(*argv) == -1) {
             if (!force) {
-                perror(program);
+                perror(PROGNAME);
             }
         }
         if (verbose) {
-            printf("%s: removed '%s'\n", program, *argv);
+            printf("%s: removed '%s'\n", PROGNAME, *argv);
         }
     }
 
