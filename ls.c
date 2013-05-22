@@ -79,6 +79,9 @@ int main(int argc, char *argv[])
     argc -= optind;
     argv += optind;
 
+    if (!*argv) {
+        *--argv = ".";
+    }
     for (; *argv; argv++) {
         int i;
 
@@ -93,10 +96,10 @@ int main(int argc, char *argv[])
         while ((dirent = readdir(dirp))) {
             count++;
         }
+        rewinddir(dirp);
 
         const char **d_name =
             (const char **) malloc(sizeof(const char *) * count);
-        rewinddir(dirp);
 
         for (i = 0; (dirent = readdir(dirp)); i++) {
             d_name[i] = dirent->d_name;
