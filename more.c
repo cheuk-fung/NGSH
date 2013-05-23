@@ -15,7 +15,7 @@ int display;
 int lines;
 int columns;
 
-void more(FILE *fin, char *name)
+void more(FILE * fin, char *name)
 {
     static const char *MORE = "-- MORE --";
     static const char *PROMPT = "[Press space to continue, 'q' to quit.]";

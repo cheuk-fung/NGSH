@@ -212,8 +212,10 @@ int commit()
     return 0;
 }
 
-static char *set_prompt()
+static char *const set_prompt()
 {
+    static char prompt[PROMPT_SIZE];
+
     char hostname[128];
     gethostname(hostname, sizeof hostname);
 
@@ -230,7 +232,6 @@ static char *set_prompt()
         }
     }
 
-    char *prompt = (char *) malloc(sizeof(char) * PROMPT_SIZE);
     snprintf(prompt, PROMPT_SIZE, "%s@%s:%s> ", getenv("USER"), hostname,
              pwd);
 
@@ -244,18 +245,19 @@ int main(int argc, char *argv[])
         pipe_fildes[0] = pipe_fildes[1] = -1;
 
         char *prompt = set_prompt();
-        char *line = readline(prompt);
-        free(prompt);
-        if (line == NULL) {
+        char *linebuf = readline(prompt);
+        if (linebuf == NULL) {
             break;              /* EOF */
         }
-        if (line[0] == '\0') {
+        if (linebuf[0] == '\0') {
             continue;           /* skip blank line */
         }
 
-        add_history(line);
+        add_history(linebuf);
 
-        strcat(line, "\n");
+        char *line = (char *) malloc(sizeof(char) * (strlen(linebuf) + 2));
+        sprintf(line, "%s\n", linebuf);
+
         yylinebuf = line;
         yylex();
 
@@ -266,6 +268,7 @@ int main(int argc, char *argv[])
         }
 
         free(line);
+        free(linebuf);
     }
     printf("\n");
 
