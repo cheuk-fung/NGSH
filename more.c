@@ -35,7 +35,7 @@ void more(FILE * fin, char *name)
                 c = getchar();
                 if (c == 'q') {
                     printf("\n");
-                    exit(EXIT_SUCCESS);
+                    return ;
                 }
             } while (c != ' ');
             printf("\n");
