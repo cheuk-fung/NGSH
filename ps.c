@@ -35,7 +35,7 @@ int main(int argc, char *argv[])
     }
 
     if (verbose) {
-        printf("%5s %5s %6s %6s %-4s COMMAND\n", "PID", "PPID", "VSZ",
+        printf("%5s %5s %8s %8s %-4s COMMAND\n", "PID", "PPID", "VSZ",
                "RSS", "STAT");
     } else {
         printf("%5s %-4s COMMAND\n", "PID", "STAT");
